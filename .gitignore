@@ -1,0 +1,15 @@
+# R Session Files
+.Rproj.user/
+.Rhistory
+.Rdata
+
+# Output Files
+*.tiff
+*.tif
+*.png
+*.pdf
+*.html
+*.xml
+
+# Data Files
+*.xlsx
