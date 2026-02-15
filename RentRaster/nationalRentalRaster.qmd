@@ -1,7 +1,7 @@
 ---
 title: "Interpolated Zillow Rental Data"
 author: "Luke Petrus"
-format: html
+format: gfm
 editor: visual
 ---
 
@@ -19,7 +19,7 @@ library(leaflet)
 library(gstat)
 library(knitr)
 
-setwd("C:/Users/Luke/OneDrive/Documents/Fireweed Cartography/WhereToLive")
+setwd("C:/Users/Luke/OneDrive/Documents/Cartography/Where2Live/WhereToLive")
 ```
 
 ## Introduction
@@ -190,7 +190,7 @@ Now, I believe I need to turn my data into a vector layer.
 vectData <- vect(geoData, c("XLong", "XLat"), crs = "EPSG:4326")
 
 # grab a U.S. shapefile I happen to have and vectorize that as well for cropping
-vectUSA <- vect("C:/Users/Luke/OneDrive/Documents/Fireweed Cartography/Shapefiles/Census.gov/cb_2018_us_state_500k/cb_2018_us_state_500k.shp", crs = "EPSG:3857")
+vectUSA <- vect("C:/Users/Luke/OneDrive/Documents/Cartography/Shapefiles/Census.gov/cb_2018_us_state_500k/cb_2018_us_state_500k.shp", crs = "EPSG:3857")
 ```
 
 #### Proximity Polygon Interpolation
