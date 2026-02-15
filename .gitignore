@@ -6,7 +6,6 @@
 # Output Files
 *.tiff
 *.tif
-*.png
 *.pdf
 *.html
 *.xml
@@ -15,6 +14,3 @@
 
 # Data Files
 *.xlsx
-
-# But not my .md plots
-!*nationalRentalRaster_files/figure-commonmark/*.png
