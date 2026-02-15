@@ -5,7 +5,6 @@ Luke Petrus
 
 ``` r
 library(tidyverse)
-library(maps)
 library(sf)
 library(terra)
 library(tidygeocoder)

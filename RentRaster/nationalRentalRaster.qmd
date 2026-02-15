@@ -14,7 +14,6 @@ editor: visual
 #| warning: false
 
 library(tidyverse)
-library(maps)
 library(sf)
 library(terra)
 library(tidygeocoder)
