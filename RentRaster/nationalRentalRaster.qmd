@@ -119,9 +119,6 @@ clRentalData <- rentalData |>
            str_remove_all(",")
         )
 
-# Sets my api key so I can batch geocode through geocodio (2500 a day free.)
-Sys.setenv(GEOCODIO_API_KEY = "f88969c36e8683dd391ec6e1d626cf31f881999")
-
 # Does the batch geocoding and adds Lat/Long columns to my data
 geoData <- clRentalData |> 
   geocode(city = RegionName, state = StateName, method = "geocodio", lat = "Lat", long = "Long", verbose = T)
