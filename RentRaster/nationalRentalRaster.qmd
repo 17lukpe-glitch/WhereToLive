@@ -2,6 +2,7 @@
 title: "Interpolated Zillow Rental Data"
 author: "Luke Petrus"
 format: gfm
+prefer-html: true
 editor: visual
 ---
 
@@ -18,8 +19,6 @@ library(tidygeocoder)
 library(leaflet)
 library(gstat)
 library(knitr)
-
-setwd("C:/Users/Luke/OneDrive/Documents/Cartography/Where2Live/WhereToLive")
 ```
 
 ## Introduction
