@@ -11,8 +11,10 @@ editor: visual
 ```{r Packages}
 #| echo: true
 #| message: false
+#| warning: false
 
 library(tidyverse)
+library(maps)
 library(sf)
 library(terra)
 library(tidygeocoder)
@@ -141,6 +143,9 @@ And now for an accuracy test. . .
 ```{r GeocodeTest}
 #| echo: true
 #| message: false
+#| eval: false
+
+# For EDA. Not evaluating in the .md
 
 # Generate a leaflet map to check the alignment of the geocoding against an Esri basemap
 leaflet(geoData) |> 
@@ -152,7 +157,30 @@ leaflet(geoData) |>
 
 ```
 
-I noticed while looking at this map that there is a pin for "United States." This is wrong. "United States" is the very first value in the data set (SizeRank == 0), and just provides a national average. I do not need this and it doesn't fit the format of my data, so I removed it. I may end up wanting that value later for something, so it is good that it remains in other data sets above.
+```{r mdMap}
+#| echo: true
+
+# Loads packages needed for AK & HI
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Reads in data as a sf
+usaMap <- ne_states("united states of america", returnclass = "sf")
+
+# Generates a simple exploratory map
+ggplot() +
+  geom_point(data = geoData, aes(x = Long, y = Lat, color = `2025-11-30`)) +
+  geom_sf(data = usaMap, fill = NA, color = "grey") +
+  coord_sf(xlim = c(-165, -60)) +
+  labs(
+    title = "Exploratory Map of Points",
+    dictionary = c(`2025-11-30` = "Price (USD)")
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+I noticed while looking at the leaflet map that there is a pin for "United States." This is wrong. "United States" is the very first value in the data set (SizeRank == 0), and just provides a national average. I do not need this and it doesn't fit the format of my data, so I removed it. I may end up wanting that value later for something, so it is good that it remains in other data sets above.
 
 ```{r spotClean}
 #| echo: true
@@ -166,7 +194,7 @@ geoData <- geoData |>
 
 ## Interpolation
 
-Now that I have the data I need to generate points, I can interpolate from those points. Thankfully, I have Robert J. Hijman's fabulous *Spatial Data Analysis with R* to guide me. So, the following code is basically me using his chapter on interpolation as a tutorial but with my own data.
+Now that I have the data I need to generate points, I can interpolate from those points. Thankfully, I have Robert J. Hijman's fabulous *Spatial Data Analysis with R* to guide me.
 
 ```{r RMSEFunction}
 #| echo: true
@@ -328,6 +356,7 @@ I wonder if leaflet will let me have a closer look at this map. . .
 ```{r NNIInteractive}
 #| echo: true
 #| message: false
+#| eval: false
 
 leaflet() |> 
   addRasterImage(NNIMask) |> 
@@ -585,6 +614,7 @@ Wowow-wewow! That's the most accurate yet, and by a significant margin, too. Mor
 ```{r OptimLeaflet}
 #| echo: true
 #| message: false
+#| eval: false
 
 leaflet() |> 
   addProviderTiles("Esri.WorldTerrain") |> 
