@@ -104,24 +104,25 @@ kable(top10)
 bottom10 <- rentalData |> 
   arrange(desc(`2025-11-30`)) |>
   select(RegionName, SizeRank, `2025-11-30`) |> 
+  filter(is.na(`2025-11-30`) == FALSE) |> 
   slice_tail(n = 10) |> 
   arrange(`2025-11-30`)
 
 kable(bottom10)
 ```
 
-| RegionName        | SizeRank | 2025-11-30 |
-|:------------------|---------:|-----------:|
-| Weatherford, OK   |      831 |         NA |
-| Crescent City, CA |      840 |         NA |
-| Altus, OK         |      864 |         NA |
-| Mitchell, SD      |      878 |         NA |
-| Maryville, MO     |      895 |         NA |
-| Price, UT         |      912 |         NA |
-| Los Alamos, NM    |      916 |         NA |
-| Andrews, TX       |      920 |         NA |
-| Snyder, TX        |      926 |         NA |
-| Vermillion, SD    |      932 |         NA |
+| RegionName     | SizeRank | 2025-11-30 |
+|:---------------|---------:|-----------:|
+| Greenville, OH |      593 |   695.8983 |
+| Austin, MN     |      698 |   756.2650 |
+| Emporia, KS    |      767 |   762.8088 |
+| Rolla, MO      |      659 |   763.0070 |
+| Great Bend, KS |      857 |   766.9679 |
+| Freeport, IL   |      657 |   773.0214 |
+| Indiana, PA    |      436 |   791.7954 |
+| Hutchinson, KS |      527 |   797.5921 |
+| Johnstown, PA  |      322 |   805.7160 |
+| Danville, IL   |      472 |   816.7278 |
 
 #### My Favorite Places
 
@@ -217,8 +218,8 @@ usaMap <- ne_states("united states of america", returnclass = "sf")
 
 # Generates a simple exploratory map
 ggplot() +
-  geom_point(data = geoData, aes(x = Long, y = Lat, color = `2025-11-30`)) +
   geom_sf(data = usaMap, fill = NA, color = "grey") +
+  geom_point(data = geoData, aes(x = Long, y = Lat, color = `2025-11-30`)) +
   coord_sf(xlim = c(-165, -60)) +
   labs(
     title = "Exploratory Map of Points",
@@ -264,8 +265,8 @@ Now, I believe I need to turn my data into a vector layer.
 # Turn my data into a vector of points
 vectData <- vect(geoData, c("XLong", "XLat"), crs = "EPSG:4326")
 
-# grab a U.S. shapefile I happen to have and vectorize that as well for cropping
-vectUSA <- vect("C:/Users/Luke/OneDrive/Documents/Cartography/Shapefiles/Census.gov/cb_2018_us_state_500k/cb_2018_us_state_500k.shp", crs = "EPSG:3857")
+# grab a U.S. shapefile for cropping
+vectUSA <- ne_countries(country = "united states of america", returnclass = "sv")
 ```
 
 #### Proximity Polygon Interpolation
@@ -406,7 +407,6 @@ gsNNI <- gstat(formula = X2025_11_30 ~ 1, # designates simple krieging on this v
             set = list(idp = 0) # inverse distance power = 0 means all 5 neighbors equally weighted
             )
 # interpolates to a raster based on the spatial model
-  # **Very large operation/file**
 NNI <- interpolate(r, gsNNI, debug.level = 0)
 
 NNIMask <- mask(NNI, rasterData)

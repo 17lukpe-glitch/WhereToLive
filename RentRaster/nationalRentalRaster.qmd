@@ -84,6 +84,7 @@ kable(top10)
 bottom10 <- rentalData |> 
   arrange(desc(`2025-11-30`)) |>
   select(RegionName, SizeRank, `2025-11-30`) |> 
+  filter(is.na(`2025-11-30`) == FALSE) |> 
   slice_tail(n = 10) |> 
   arrange(`2025-11-30`)
 
@@ -168,8 +169,8 @@ usaMap <- ne_states("united states of america", returnclass = "sf")
 
 # Generates a simple exploratory map
 ggplot() +
-  geom_point(data = geoData, aes(x = Long, y = Lat, color = `2025-11-30`)) +
   geom_sf(data = usaMap, fill = NA, color = "grey") +
+  geom_point(data = geoData, aes(x = Long, y = Lat, color = `2025-11-30`)) +
   coord_sf(xlim = c(-165, -60)) +
   labs(
     title = "Exploratory Map of Points",
@@ -215,8 +216,8 @@ Now, I believe I need to turn my data into a vector layer.
 # Turn my data into a vector of points
 vectData <- vect(geoData, c("XLong", "XLat"), crs = "EPSG:4326")
 
-# grab a U.S. shapefile I happen to have and vectorize that as well for cropping
-vectUSA <- vect("C:/Users/Luke/OneDrive/Documents/Cartography/Shapefiles/Census.gov/cb_2018_us_state_500k/cb_2018_us_state_500k.shp", crs = "EPSG:3857")
+# grab a U.S. shapefile for cropping
+vectUSA <- ne_countries(country = "united states of america", returnclass = "sv")
 ```
 
 #### Proximity Polygon Interpolation
@@ -342,7 +343,6 @@ gsNNI <- gstat(formula = X2025_11_30 ~ 1, # designates simple krieging on this v
             set = list(idp = 0) # inverse distance power = 0 means all 5 neighbors equally weighted
             )
 # interpolates to a raster based on the spatial model
-  # **Very large operation/file**
 NNI <- interpolate(r, gsNNI, debug.level = 0)
 
 NNIMask <- mask(NNI, rasterData)
