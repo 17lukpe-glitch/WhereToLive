@@ -1,21 +1,16 @@
----
-title: "Ski Area Raster"
-author: "Luke Petrus"
-format: gfm
-editor: visual
----
+# Ski Area Raster
+Luke Petrus
 
-```{r Packages}
-#| message: false
-#| warning: false
-
+``` r
 # Loads packages
 library(tidyverse)
 ```
 
 # Intro
 
-The next step on my journey to build a weighted raster overlay model to determine where I should live is creating a raster that represents the distance from the center of each cell to the nearest ski area.
+The next step on my journey to build a weighted raster overlay model to
+determine where I should live is creating a raster that represents the
+distance from the center of each cell to the nearest ski area.
 
 # Ski Resort Point Data
 
@@ -23,25 +18,38 @@ The next step on my journey to build a weighted raster overlay model to determin
 
 #### Loading Data
 
-I have found a reasonably thorough list of ski resorts published by the National Ski Area Association. This data was downloaded from their website as a pdf, then converted from that into an excel file, where I made some further formatting edits to get the data properly organized as a table. From there I am able to import the data to here.
+I have found a reasonably thorough list of ski resorts published by the
+National Ski Area Association. This data was downloaded from their
+website as a pdf, then converted from that into an excel file, where I
+made some further formatting edits to get the data properly organized as
+a table. From there I am able to import the data to here.
 
-```{r LoadData1}
-#| message: false
-
+``` r
 # Reads in my data
 skiData <- read_csv("skiAreaData.csv")
 knitr::kable(head(skiData))
 ```
 
-Wow! Look at that, a list of ski resorts, their states, and the year they opened. Obviously, the next step will have to be geocoding these resorts so I can use them for spatial analysis. Before I go there, let's take a quick detour through some exploratory data analysis just to see what trends might be hiding here.
+| Ski Area                    | State | Website                      | Year Opened |
+|:----------------------------|:------|:-----------------------------|------------:|
+| Howelsen Hill Ski Area      | CO    | www.steamboatsprings.net/ski |        1915 |
+| Eaglebrook School           | MA    | www.eaglebrook.org           |        1922 |
+| Storrs Hill Ski Area        | NH    | www.skistorrshill.com        |        1923 |
+| Mountain High Resort        | CA    | www.mthigh.com               |        1924 |
+| Cooper Spur Mountain Resort | OR    | www.cooperspur.com           |        1927 |
+| Granlibakken Tahoe Ski Area | CA    | www.granlibakken.com         |        1927 |
+
+Wow! Look at that, a list of ski resorts, their states, and the year
+they opened. Obviously, the next step will have to be geocoding these
+resorts so I can use them for spatial analysis. Before I go there, let’s
+take a quick detour through some exploratory data analysis just to see
+what trends might be hiding here.
 
 #### EDA
 
 First, a bar chart of resorts by state:
 
-```{r EDA1}
-
-
+``` r
 # Generates a bar chart of ski resorts by state.
 areasByState <- skiData |> 
   mutate(State = fct_infreq(factor(State))) |> 
@@ -61,9 +69,11 @@ areasByState <- skiData |>
 areasByState
 ```
 
+![](skiLocationsAPIProj_files/figure-commonmark/EDA1-1.png)
+
 And now a bar chart showing ski resorts founded per year:
 
-```{r EDA2}
+``` r
 years <- tibble(Est = c(1915:2023))
 
 byYear <- skiData |> 
@@ -90,40 +100,60 @@ areasByYear <- ggplot(byYear) +
 areasByYear
 ```
 
+![](skiLocationsAPIProj_files/figure-commonmark/EDA2-1.png)
+
 ## Geocoding
 
-One problem with this data as it stands right now is the lack of location data. I could, of course, manually input the location data using the website links provided for each resort in the table. This would probably take eight hours or more, though, so first lets try geocoding based on their names and hope for the best.
+One problem with this data as it stands right now is the lack of
+location data. I could, of course, manually input the location data
+using the website links provided for each resort in the table. This
+would probably take eight hours or more, though, so first lets try
+geocoding based on their names and hope for the best.
 
-Actually, I did a little reading on Geocodio before I bothered writing the code to try, so I am pretty confident that their service won't do what I need. The problem is that I have the names of the businesses, but not their addresses. I would first have to find all their addresses to use this method. Time to research other solutions. . .
+Actually, I did a little reading on Geocodio before I bothered writing
+the code to try, so I am pretty confident that their service won’t do
+what I need. The problem is that I have the names of the businesses, but
+not their addresses. I would first have to find all their addresses to
+use this method. Time to research other solutions. . .
 
 Perhaps this is an opportunity to learn web scraping. . . .
 
-After some more reading and exploring, it looks like a good bet for getting locations for all these places might be the Google Places API. This should let me feed in the resort names just like I'm searching for the resort on Google Maps. To do this, I'm going to need to learn the ins and outs of API programming in R, something not generally considered to be one of R's strong suits, at least compared to Python. One language at a time, though.
+After some more reading and exploring, it looks like a good bet for
+getting locations for all these places might be the Google Places API.
+This should let me feed in the resort names just like I’m searching for
+the resort on Google Maps. To do this, I’m going to need to learn the
+ins and outs of API programming in R, something not generally considered
+to be one of R’s strong suits, at least compared to Python. One language
+at a time, though.
 
 ## Google Places API
 
 ------------------------------------------------------------------------
 
-**Nothing in this section is evaluated in the .md because I am not willing to rerun the API just to get bad data that I can fix again.**
+**Nothing in this section is evaluated in the .md because I am not
+willing to rerun the API just to get bad data that I can fix again.**
 
 ------------------------------------------------------------------------
 
 To work with APIs in R, it is best to use the `httr2` package.
 
-```{r APIPackages}
-#| message: false
-#| warning: false
-#| eval: false
-
+``` r
 library(httr2)
 ```
 
-Now, after reading through the documentation, it appears that the best way to do this is to use Text Search Essentials to obtain the Place ID and Place Type, filter the results by Place Type to make sure I have a ski resort, then use Place Details Essentials to obtain the location for this place. I should be able to do all this through the Google Places API for free. Now the challenge is writing the code to make it happen. It seems I will need design a function that does this, then use a for loop to apply that function to every ski resort in my list. Learning APIs is making my brain hurt, though, so before we make this recursive, lets see if we can use the Google Places API to get the location of Bridger Bowl.
+Now, after reading through the documentation, it appears that the best
+way to do this is to use Text Search Essentials to obtain the Place ID
+and Place Type, filter the results by Place Type to make sure I have a
+ski resort, then use Place Details Essentials to obtain the location for
+this place. I should be able to do all this through the Google Places
+API for free. Now the challenge is writing the code to make it happen.
+It seems I will need design a function that does this, then use a for
+loop to apply that function to every ski resort in my list. Learning
+APIs is making my brain hurt, though, so before we make this recursive,
+lets see if we can use the Google Places API to get the location of
+Bridger Bowl.
 
-```{r APICode}
-#| eval: false
-#| echo: true
-
+``` r
 #API Key
 skiKey <- Sys.getenv("GOOGLE_SKI_KEY")
 
@@ -151,12 +181,11 @@ result <- req_perform(firstRequest)
 resp_raw(result)
 ```
 
-Sweet baby Jesus, it worked! That looks like the right location to me (I happen to know that Bozeman is just under 46 North by 111 West). Now, lets see if we can get this into a tibble.
+Sweet baby Jesus, it worked! That looks like the right location to me (I
+happen to know that Bozeman is just under 46 North by 111 West). Now,
+lets see if we can get this into a tibble.
 
-```{r JSONtoTibble}
-#| echo: true
-#| eval: false
-
+``` r
 #Turns the json into a nested list
 result1 <- result |> 
   resp_body_json()
@@ -171,12 +200,11 @@ tibble(Name = result1$places[[1]]$displayName$text,
        Long = result1$places[[1]]$location$longitude)
 ```
 
-That's all the individual pieces I need, so now I just need to make it recursive such that it performs these operations for every resort in my list.
+That’s all the individual pieces I need, so now I just need to make it
+recursive such that it performs these operations for every resort in my
+list.
 
-```{r PutItTogether}
-#| eval: false
-#| echo: true
-
+``` r
 skiCoords <- function(resortName) {
   # A function for finding lat/long for ski resorts with Google Places API
   # ARGS: resortName = the name of the resort to search for
@@ -221,19 +249,22 @@ safeSkiCoords <- possibly(skiCoords, otherwise = tibble())
 
 littleBoy <- map(skiData$`Ski Area`, safeSkiCoords, .progress = T) |> 
   list_rbind()
-
 ```
 
-It worked! After some tinkering and a fair bit of consulting with Gemini to make sure I got it right the first time and didn't end up spending money I didn't need to on Google Places API, we have a list of ski resorts with location data. I do notice that there are 20 missing resorts. Lets see if we can figure out which ones those are and if they're important enough to merit some manual data entry. Also, lets save this as a .csv locally so I don't have to run the API again and risk having to cough up some dough to Google for my mistake.
+It worked! After some tinkering and a fair bit of consulting with Gemini
+to make sure I got it right the first time and didn’t end up spending
+money I didn’t need to on Google Places API, we have a list of ski
+resorts with location data. I do notice that there are 20 missing
+resorts. Lets see if we can figure out which ones those are and if
+they’re important enough to merit some manual data entry. Also, lets
+save this as a .csv locally so I don’t have to run the API again and
+risk having to cough up some dough to Google for my mistake.
 
 ## Data Cleaning
 
 #### Sloppy API & Merge Results
 
-```{r QualityCheck}
-#| echo: true
-#| eval: false
-
+``` r
 #Creates a table of the missed hills
 missedHills <- anti_join(skiData, bigBoy, by = join_by(`Ski Area` == searchName))
 
@@ -290,12 +321,11 @@ semifinal <- littleBoy |>
   add_row(bigBoy)
 ```
 
-Just noticed that Buttermilk got coded as Mountains Walking Brewery. That's wrong, so lets go ahead and fix it. Otherwise, everything looks pretty good.
+Just noticed that Buttermilk got coded as Mountains Walking Brewery.
+That’s wrong, so lets go ahead and fix it. Otherwise, everything looks
+pretty good.
 
-```{r FixButtermilk}
-#| echo: true
-#| eval: false
-
+``` r
 # Fixes Buttermilk's location
 bigBoy <- bigBoy |>
   mutate(
@@ -326,18 +356,12 @@ finalSkiData <- skiData |>
 
 Alright, that looks good. Lets save it as a .csv.
 
-```{r SaveData}
-#| echo: true
-#| eval: false
-
+``` r
 # Writes to a csv in the current working directory
 write_csv(finalSkiData, "finalSkiData.csv")
 ```
 
-```{r LoadData2}
-#| echo: true
-#| eval: false
-
+``` r
 #Reads it back in so I can continue my work without rerunning the above code.
 finalSkiData <- read_csv("finalSkiData.csv")
 ```
@@ -346,10 +370,7 @@ finalSkiData <- read_csv("finalSkiData.csv")
 
 Aaaand a quick map, just for fun.
 
-```{r SanityMap}
-#| echo: true
-#| eval: false
-
+``` r
 # For ground truthing. Not rendered in the .md
 
 library(leaflet)
@@ -364,14 +385,23 @@ leaflet(finalSkiData) |>
 
 #### Map Fixes
 
-Well, looking at the map, there are some clear mistakes. For example, Mt. Zion is supposed to be in MI, not Israel. Likewise with that one in Spain. Also, I found one that is supposed to be in NY (Polar Peak) which has been placed in Oregon. Another (Gateway Hills) was supposed to be in NH, but instead its in ID. Another (The Homestead) is in WV but should be in MI. Powder Ridge should be in MN, not CT. Alpine Valley OH is in MI for some reason. Bluebird CO is in MT, and the National Ski Association is marked where Bridger bowl is. These are all things that will need fixed, but that's work for another day.
+Well, looking at the map, there are some clear mistakes. For example,
+Mt. Zion is supposed to be in MI, not Israel. Likewise with that one in
+Spain. Also, I found one that is supposed to be in NY (Polar Peak) which
+has been placed in Oregon. Another (Gateway Hills) was supposed to be in
+NH, but instead its in ID. Another (The Homestead) is in WV but should
+be in MI. Powder Ridge should be in MN, not CT. Alpine Valley OH is in
+MI for some reason. Bluebird CO is in MT, and the National Ski
+Association is marked where Bridger bowl is. These are all things that
+will need fixed, but that’s work for another day.
 
-And, now its another day, so lets clean this data up. In the interest of not burning through all my Google API credit trying to find a perfect way to get everything properly positioned, I am going to manually recode the resorts I identified above using the case_when() system I used above for Buttermilk.
+And, now its another day, so lets clean this data up. In the interest of
+not burning through all my Google API credit trying to find a perfect
+way to get everything properly positioned, I am going to manually recode
+the resorts I identified above using the case_when() system I used above
+for Buttermilk.
 
-```{r FixEm}
-#| echo: true
-#| eval: false
-
+``` r
 # Fixes some points in what I suspect is a very inefficient way
 finalSkiData1 <- finalSkiData |> 
   mutate(
@@ -427,15 +457,11 @@ finalSkiData1 <- finalSkiData |>
   filter(!`Ski Area` %in% c("Xanadu SnowParkc/o Select Contracts", #Name change
                          "Polar Peak Ski Bowl", #Not public
                          "National Ski Areas Association")) #Not a hill
-
 ```
 
 That should take care of the mistakes I saw. Lets remap it and see.
 
-```{r FixedMap}
-#| echo: true
-#| eval: false
-
+``` r
 # For ground truthing. Not rendered in the .md
 
 # Another leaflet map
@@ -449,12 +475,16 @@ leaflet(finalSkiData1) |>
 
 #### More Fixes
 
-The code works, but I just noticed that Meadowlark in WY was mapped to Hogadon. This is a mistake due to the fact that I filtered for ski resorts, but meadowlark is on Google maps as a lodging. Goddamnit. Ope, and there's Tamarack resort in Cali which is supposed to be in Idaho. Makes me wonder how many more resorts I lack the prior knowledge/context to catch. It is especially hard since in the case of Meadowlark and Hogadon, as well as several others, they're both geocoded to the same location and overlap perfectly.
+The code works, but I just noticed that Meadowlark in WY was mapped to
+Hogadon. This is a mistake due to the fact that I filtered for ski
+resorts, but meadowlark is on Google maps as a lodging. Goddamnit. Ope,
+and there’s Tamarack resort in Cali which is supposed to be in Idaho.
+Makes me wonder how many more resorts I lack the prior knowledge/context
+to catch. It is especially hard since in the case of Meadowlark and
+Hogadon, as well as several others, they’re both geocoded to the same
+location and overlap perfectly.
 
-```{r Meadowlark}
-#| echo: true
-#| eval: false
-
+``` r
 # Even more horrendously inefficient fixes
 finalSkiData <- finalSkiData1 |> 
   mutate(
@@ -475,15 +505,12 @@ finalSkiData <- finalSkiData1 |>
       T ~ long
     )
   )
-
 ```
 
-Well, I'm determined to make this data set as perfect as possible, so lets see what we can do.
+Well, I’m determined to make this data set as perfect as possible, so
+lets see what we can do.
 
-```{r ExploreDupes}
-#| echo: true
-#| eval: false
-
+``` r
 # Checks how many distinct longitudes there are
 finalSkiData |> 
   distinct(long) |> 
@@ -500,12 +527,11 @@ finalSkiData |>
   count()
 ```
 
-Goddamnit. These three queries imply that there are something like 10 more ski areas that have overlapping coordinates that I haven't found yet. Massive PITA. Oh well. Lets make a list.
+Goddamnit. These three queries imply that there are something like 10
+more ski areas that have overlapping coordinates that I haven’t found
+yet. Massive PITA. Oh well. Lets make a list.
 
-```{r ListOfDupes}
-#| echo: true
-#| eval: false
-
+``` r
 # Creates an organized list of the duplicate coordinates
 finalSkiData |> 
   group_by(lat) |> 
@@ -516,12 +542,19 @@ finalSkiData |>
 
 #### Even More Fixes
 
-Amazingly, Hogadon and Bristol mountain are at the exact same latitude to a ridiculous degree of precision, but their longitudes are different, so that pair can be ignored. Otherwise, all the others need to be checked and adjusted. Fuck. Making this data set is taking an insane amount of time. Still less than coding them all by hand, but jeez! Let's get to work. Sounds like I'll need to move 9 of the 18, since out of each duplicate pair, one of the two should hopefully be in the right location. Still doesn't guarantee that all of them got coded in the right place, but without checking every single one against satellite imagery to look for ski infrastructure, I don't know what else I could do.
+Amazingly, Hogadon and Bristol mountain are at the exact same latitude
+to a ridiculous degree of precision, but their longitudes are different,
+so that pair can be ignored. Otherwise, all the others need to be
+checked and adjusted. Fuck. Making this data set is taking an insane
+amount of time. Still less than coding them all by hand, but jeez! Let’s
+get to work. Sounds like I’ll need to move 9 of the 18, since out of
+each duplicate pair, one of the two should hopefully be in the right
+location. Still doesn’t guarantee that all of them got coded in the
+right place, but without checking every single one against satellite
+imagery to look for ski infrastructure, I don’t know what else I could
+do.
 
-```{r FixTheDupes}
-#| echo: true
-#| eval: false
-
+``` r
 # Even more fixes. Boy, this is tiring
 finalSkiData2 <- finalSkiData |> 
   mutate(
@@ -588,10 +621,7 @@ finalSkiData2 <- finalSkiData |>
 
 Okay, with luck this should be good. Time to check.
 
-```{r DoubleCheck}
-#| echo: true
-#| eval: false
-
+``` r
 # Makes that list again
 finalSkiData2 |> 
   group_by(long) |> 
@@ -604,10 +634,7 @@ finalSkiData2 |>
 
 Beautiful. Final touches. . . .
 
-```{r FinalTouches}
-#| echo: true
-#| eval: false
-
+``` r
 # Makes it Geanette McPurdy
 finalSkiData <- finalSkiData2 |> 
   select(!dispName) |> 
@@ -620,13 +647,12 @@ write_csv(finalSkiData, "finalSkiData.csv")
 
 # Distance Raster From Points
 
-Now that I have the data set cleaned, fixed, and generally in a condition that I think is tolerable, it is time to make a raster from these points. First step is to load back in the ski data so I don't have to run all the above cells to work on the raster section.
+Now that I have the data set cleaned, fixed, and generally in a
+condition that I think is tolerable, it is time to make a raster from
+these points. First step is to load back in the ski data so I don’t have
+to run all the above cells to work on the raster section.
 
-```{r LoadData3}
-#| echo: true
-#| warning: false
-#| message: false
-
+``` r
 # Reloads tidyverse for when I'm starting at this section.
 library(tidyverse)
 library(terra)
@@ -641,12 +667,13 @@ skiPoints <- vect(finalSkiData, crs = "EPSG:4326", geom = c("long", "lat"))
 plot(skiPoints)
 ```
 
-Yeah buddy! We've got a vector object with all the ski areas represented as points that still contains their identifying info. Now to do a distance raster.
+![](skiLocationsAPIProj_files/figure-commonmark/LoadData3-1.png)
 
-```{r DistanceRaster}
-#| echo: true
-#| warning: false
+Yeah buddy! We’ve got a vector object with all the ski areas represented
+as points that still contains their identifying info. Now to do a
+distance raster.
 
+``` r
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
@@ -670,12 +697,13 @@ distRaster <- mask(distRaster, usaVect)
 plot(distRaster)
 ```
 
-I think that did it. I will need to remove HI if I want the color scale to make sense, but this is the raster I needed. It seems logical and I don't see why it wouldn't be correct.
+![](skiLocationsAPIProj_files/figure-commonmark/DistanceRaster-1.png)
 
-```{r writeFile}
-#| echo: true
-#| warning: false
+I think that did it. I will need to remove HI if I want the color scale
+to make sense, but this is the raster I needed. It seems logical and I
+don’t see why it wouldn’t be correct.
 
+``` r
 writeRaster(distRaster, "prelimSkiRaster.tif", overwrite = T)
 ```
 
